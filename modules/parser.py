@@ -2,8 +2,6 @@ import os
 import pdfplumber
 import pandas as pd
 
-from modules.ocr import extract_text_from_image
-
 
 def extract_text(file_path):
     """
@@ -22,6 +20,9 @@ def extract_text(file_path):
         return extract_csv(file_path)
 
     elif extension in [".png", ".jpg", ".jpeg"]:
+        # Lazy import OCR only when an image is uploaded
+        from modules.ocr import extract_text_from_image
+
         return extract_text_from_image(file_path)
 
     else:
