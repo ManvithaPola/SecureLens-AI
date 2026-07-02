@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SecureLens AI — AI-Powered Document Privacy & Compliance</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              mono: ["IBM Plex Mono", "monospace"],
+            },
+            colors: {
+              bg: "#F8FAFC",
+              primary: "#2563EB",
+              primaryHover: "#1D4ED8",
+              secondary: "#3B82F6",
+              accent: "#0EA5E9",
+              cardc: "#FFFFFF",
+              bordc: "#E5E7EB",
+              textp: "#111827",
+              texts: "#6B7280",
+              success: "#10B981",
+              warning: "#F59E0B",
+              danger: "#EF4444",
+              info: "#06B6D4",
+            },
+            boxShadow: {
+              soft: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08)",
+              lift: "0 12px 32px -12px rgba(37,99,235,0.25)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html { scroll-behavior: smooth; }
+      body { background: #F8FAFC; }
+
+      /* ---- glass nav ---- */
+      .glass-nav {
+        background: rgba(248, 250, 252, 0.75);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+      }
+
+      /* ---- section reveal ---- */
+      .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+      .reveal.in { opacity: 1; transform: translateY(0); }
+
+      /* ---- card lift ---- */
+      .lift { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+      .lift:hover { transform: translateY(-4px); box-shadow: 0 16px 40px -16px rgba(15,23,42,0.18); }
+
+      /* ---- scan line for hero art ---- */
+      @keyframes scanline {
+        0% { transform: translateY(-6%); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(106%); opacity: 0; }
+      }
+      .scanline { animation: scanline 3.2s ease-in-out infinite; }
+
+      @keyframes pulseRing {
+        0% { transform: scale(0.9); opacity: 0.5; }
+        70% { transform: scale(1.35); opacity: 0; }
+        100% { opacity: 0; }
+      }
+      .pulse-ring { animation: pulseRing 2.4s ease-out infinite; }
+
+      @keyframes floaty {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+      }
+      .floaty { animation: floaty 4.5s ease-in-out infinite; }
+
+      /* ---- skeleton ---- */
+      @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+      .skeleton {
+        background: linear-gradient(90deg, #EEF2F7 25%, #E5EAF1 37%, #EEF2F7 63%);
+        background-size: 400px 100%;
+        animation: shimmer 1.4s ease-in-out infinite;
+      }
+
+      /* ---- typing dots ---- */
+      @keyframes dotPulse { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+      .dot { animation: dotPulse 1.2s infinite; }
+      .dot:nth-child(2) { animation-delay: .15s; }
+      .dot:nth-child(3) { animation-delay: .3s; }
+
+      /* ---- markdown report styling ---- */
+      #summary h1, #summary h2, #summary h3 {
+        font-weight: 700; color: #111827; margin-top: 1.5rem; margin-bottom: 0.6rem; letter-spacing: -0.01em;
+      }
+      #summary h2 { font-size: 1.25rem; }
+      #summary h3 { font-size: 1.05rem; }
+      #summary p { color: #374151; line-height: 1.85; margin-bottom: 0.75rem; }
+      #summary ul { margin-left: 1.25rem; list-style: disc; margin-bottom: 0.75rem; }
+      #summary li { margin-top: 0.4rem; margin-bottom: 0.4rem; color: #374151; }
+      #summary strong { color: #111827; }
+      #summary code { background: #F1F5F9; padding: 2px 6px; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 0.85em; }
+
+      /* chat scrollbar */
+      #chatMessages::-webkit-scrollbar { width: 6px; }
+      #chatMessages::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+
+      .btn-scale { transition: transform .15s ease; }
+      .btn-scale:active { transform: scale(0.97); }
+    </style>
+  </head>
+
+  <body class="font-sans text-textp bg-bg antialiased">
+    <!-- ============================================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================================ -->
+    <header class="glass-nav sticky top-0 z-40 border-b border-bordc">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <a href="#top" class="flex items-center gap-2.5">
+          <span class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-soft">
+            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+          </span>
+          <span class="text-lg font-extrabold tracking-tight text-textp">SecureLens <span class="text-primary">AI</span></span>
+        </a>
+
+        <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-texts">
+          <a href="#top" class="hover:text-primary transition">Home</a>
+          <a href="#features" class="hover:text-primary transition">Features</a>
+          <a href="#how-it-works" class="hover:text-primary transition">How It Works</a>
+          <a href="#about" class="hover:text-primary transition">About</a>
+          <a href="#contact" class="hover:text-primary transition">Contact</a>
+        </nav>
+
+        <a href="#upload" class="btn-scale inline-flex items-center gap-2 bg-primary hover:bg-primaryHover text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-soft transition">
+          <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+          Upload Document
+        </a>
+      </div>
+    </header>
+
+    <main id="top" class="max-w-7xl mx-auto px-6">
+      <!-- ============================================================ -->
+      <!-- HERO -->
+      <!-- ============================================================ -->
+      <section class="grid lg:grid-cols-2 gap-12 items-center py-20 lg:py-28">
+        <div class="reveal">
+          <span class="inline-flex items-center gap-2 bg-blue-50 text-primary text-xs font-semibold px-3.5 py-1.5 rounded-full border border-blue-100">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            AI-Powered Document Privacy & Risk Analysis
+          </span>
+
+          <h1 class="mt-6 text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight text-textp">
+            Protect sensitive information with AI
+          </h1>
+
+          <p class="mt-6 text-lg text-texts leading-relaxed max-w-xl">
+            Automatically detect confidential information, assess compliance risks, generate AI-powered security reports, interact with an intelligent cybersecurity assistant, and mask sensitive information — all in one secure platform.
+          </p>
+
+          <div class="mt-9 flex flex-wrap items-center gap-4">
+            <a href="#upload" class="btn-scale inline-flex items-center gap-2 bg-primary hover:bg-primaryHover text-white font-semibold px-6 py-3.5 rounded-xl shadow-lift transition">
+              <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+              Upload Document
+            </a>
+            <a href="#features" class="btn-scale inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-textp font-semibold px-6 py-3.5 rounded-xl border border-bordc transition">
+              Learn More
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+          </div>
+
+          <div class="mt-10 flex items-center gap-8 text-sm text-texts">
+            <div class="flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4 text-success"></i> Privacy-first processing</div>
+            <div class="flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-accent"></i> Real-time analysis</div>
+          </div>
+        </div>
+
+        <!-- Hero illustration -->
+        <div class="reveal relative">
+          <div class="relative bg-white border border-bordc rounded-3xl shadow-soft p-6 overflow-hidden">
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-danger/70"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-warning/70"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-success/70"></span>
+              </div>
+              <span class="text-xs font-mono text-texts">scan_report.json</span>
+            </div>
+
+            <div class="relative rounded-2xl bg-slate-900 p-6 overflow-hidden">
+              <div class="absolute left-0 right-0 h-16 bg-gradient-to-b from-accent/40 to-transparent scanline"></div>
+
+              <div class="flex items-center justify-center py-6">
+                <div class="relative floaty">
+                  <span class="absolute inset-0 rounded-full border-2 border-accent/50 pulse-ring"></span>
+                  <span class="absolute inset-0 rounded-full border-2 border-accent/50 pulse-ring" style="animation-delay:.8s"></span>
+                  <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lift">
+                    <i data-lucide="shield-check" class="w-9 h-9 text-white"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-2.5 mt-4">
+                <div class="flex items-center justify-between text-xs font-mono">
+                  <span class="text-slate-400">entities_detected</span>
+                  <span class="text-emerald-400">14</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                  <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-primary to-accent"></div>
+                </div>
+                <div class="flex items-center justify-between text-xs font-mono pt-2">
+                  <span class="text-slate-400">risk_level</span>
+                  <span class="text-amber-400">medium</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                  <div class="h-full w-1/2 rounded-full bg-amber-400"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 mt-5">
+              <div class="rounded-xl bg-slate-50 border border-bordc p-3 text-center">
+                <i data-lucide="file-search" class="w-4 h-4 mx-auto text-primary"></i>
+                <p class="text-[11px] text-texts mt-1.5">Detect</p>
+              </div>
+              <div class="rounded-xl bg-slate-50 border border-bordc p-3 text-center">
+                <i data-lucide="bar-chart-3" class="w-4 h-4 mx-auto text-accent"></i>
+                <p class="text-[11px] text-texts mt-1.5">Classify</p>
+              </div>
+              <div class="rounded-xl bg-slate-50 border border-bordc p-3 text-center">
+                <i data-lucide="eye-off" class="w-4 h-4 mx-auto text-secondary"></i>
+                <p class="text-[11px] text-texts mt-1.5">Mask</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- FEATURES -->
+      <!-- ============================================================ -->
+      <section id="features" class="py-20 scroll-mt-24">
+        <div class="reveal text-center max-w-2xl mx-auto mb-14">
+          <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight">What SecureLens AI helps you do</h2>
+          <p class="mt-4 text-texts text-lg">Everything you need to keep sensitive documents compliant, explainable, and secure.</p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="reveal lift bg-white border border-bordc rounded-2xl p-7">
+            <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center"><i data-lucide="shield" class="w-5 h-5 text-primary"></i></div>
+            <h3 class="mt-5 font-bold text-lg">Sensitive Data Detection</h3>
+            <p class="mt-2 text-sm text-texts leading-relaxed">Automatically detect emails, phone numbers, PAN, Aadhaar, API keys, passwords, confidential information and more.</p>
+          </div>
+
+          <div class="reveal lift bg-white border border-bordc rounded-2xl p-7">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center"><i data-lucide="alert-triangle" class="w-5 h-5 text-warning"></i></div>
+            <h3 class="mt-5 font-bold text-lg">Risk Classification</h3>
+            <p class="mt-2 text-sm text-texts leading-relaxed">Classify document security risks into Low, Medium and High based on detected sensitive information.</p>
+          </div>
+
+          <div class="reveal lift bg-white border border-bordc rounded-2xl p-7">
+            <div class="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center"><i data-lucide="file-search" class="w-5 h-5 text-accent"></i></div>
+            <h3 class="mt-5 font-bold text-lg">AI Compliance Reports</h3>
+            <p class="mt-2 text-sm text-texts leading-relaxed">Generate professional cybersecurity compliance reports powered by Google Gemini AI.</p>
+          </div>
+
+          <div class="reveal lift bg-white border border-bordc rounded-2xl p-7">
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5 text-secondary"></i></div>
+            <h3 class="mt-5 font-bold text-lg">AI Cybersecurity Assistant</h3>
+            <p class="mt-2 text-sm text-texts leading-relaxed">Ask questions about your uploaded documents using Retrieval-Augmented Generation (RAG).</p>
+          </div>
+
+          <div class="reveal lift bg-white border border-bordc rounded-2xl p-7">
+            <div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center"><i data-lucide="eye-off" class="w-5 h-5 text-textp"></i></div>
+            <h3 class="mt-5 font-bold text-lg">Data Masking</h3>
+            <p class="mt-2 text-sm text-texts leading-relaxed">Automatically redact sensitive information before sharing documents.</p>
+          </div>
+
+          <div class="reveal lift bg-white border border-bordc rounded-2xl p-7">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center"><i data-lucide="lock" class="w-5 h-5 text-success"></i></div>
+            <h3 class="mt-5 font-bold text-lg">Privacy First</h3>
+            <p class="mt-2 text-sm text-texts leading-relaxed">Your documents are processed securely without compromising privacy.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- UPLOAD -->
+      <!-- ============================================================ -->
+      <section id="upload" class="py-10 scroll-mt-24" aria-label="how-it-works">
+        <div id="how-it-works" class="reveal bg-white rounded-3xl shadow-soft border border-bordc p-8 lg:p-10">
+          <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+            <div>
+              <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight">Upload a document</h2>
+              <p class="text-texts mt-2">Drop a file or click to browse — analysis begins immediately after upload.</p>
+            </div>
+            <span class="text-xs font-semibold bg-slate-100 text-texts px-4 py-2 rounded-full self-start md:self-auto">Max size · 20 MB</span>
+          </div>
+
+          <form id="uploadForm" enctype="multipart/form-data" class="space-y-8">
+            <label
+              for="document"
+              class="group relative border-2 border-dashed border-blue-200 rounded-2xl flex flex-col justify-center items-center py-16 px-6 cursor-pointer hover:border-primary hover:bg-blue-50/50 transition duration-300"
+            >
+              <div class="w-16 h-16 rounded-2xl bg-blue-50 group-hover:bg-white flex items-center justify-center transition">
+                <i data-lucide="upload-cloud" class="w-8 h-8 text-primary"></i>
+              </div>
+              <h3 class="mt-5 text-xl font-bold text-textp">Drag & drop your document</h3>
+              <p class="mt-2 text-texts text-sm">or click to browse from your device</p>
+
+              <div class="flex flex-wrap justify-center gap-2 mt-6">
+                <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-white border border-bordc text-texts">PDF</span>
+                <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-white border border-bordc text-texts">TXT</span>
+                <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-white border border-bordc text-texts">CSV</span>
+                <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-white border border-bordc text-texts">PNG</span>
+                <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-white border border-bordc text-texts">JPG</span>
+                <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-white border border-bordc text-texts">JPEG</span>
+              </div>
+
+              <input
+                id="document"
+                type="file"
+                name="document"
+                accept=".pdf,.txt,.csv,.png,.jpg,.jpeg,application/pdf,text/plain,text/csv,image/png,image/jpeg"
+                class="hidden"
+              />
+            </label>
+
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p id="filename" class="text-texts font-medium flex items-center gap-2">
+                <i data-lucide="file" class="w-4 h-4"></i>
+                No file selected
+              </p>
+
+              <button
+                id="analyzeBtn"
+                type="submit"
+                class="btn-scale w-full md:w-auto inline-flex items-center justify-center gap-2 bg-primary hover:bg-primaryHover text-white px-8 py-3.5 rounded-xl font-semibold transition shadow-soft"
+              >
+                <i data-lucide="scan-line" class="w-4 h-4"></i>
+                Analyze Document
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden mt-6">
+          <div class="bg-white rounded-3xl shadow-soft border border-bordc p-8">
+            <div class="flex items-center gap-4 mb-6">
+              <svg class="animate-spin h-6 w-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+              <span class="text-lg font-semibold">Analyzing document…</span>
+            </div>
+            <div class="space-y-3">
+              <div class="skeleton h-4 rounded-full w-full"></div>
+              <div class="skeleton h-4 rounded-full w-5/6"></div>
+              <div class="skeleton h-4 rounded-full w-3/4"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- STATISTICS -->
+      <!-- ============================================================ -->
+      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mt-10">
+        <div class="reveal lift bg-white rounded-2xl shadow-soft border border-bordc p-6 border-l-4 border-l-danger">
+          <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center"><i data-lucide="flame" class="w-5 h-5 text-danger"></i></div>
+          <p class="text-texts mt-4 text-sm font-medium">Risk Level</p>
+          <h2 id="riskLevel" class="text-3xl font-extrabold mt-1 tracking-tight">--</h2>
+          <p class="text-xs text-texts mt-3">Overall document classification</p>
+        </div>
+
+        <div class="reveal lift bg-white rounded-2xl shadow-soft border border-bordc p-6 border-l-4 border-l-warning">
+          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center"><i data-lucide="search" class="w-5 h-5 text-warning"></i></div>
+          <p class="text-texts mt-4 text-sm font-medium">Sensitive Items</p>
+          <h2 id="sensitiveCount" class="text-3xl font-extrabold mt-1 tracking-tight">0</h2>
+          <p class="text-xs text-texts mt-3">Total sensitive entities detected</p>
+        </div>
+
+        <div class="reveal lift bg-white rounded-2xl shadow-soft border border-bordc p-6 border-l-4 border-l-primary">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><i data-lucide="gauge" class="w-5 h-5 text-primary"></i></div>
+          <p class="text-texts mt-4 text-sm font-medium">Risk Score</p>
+          <h2 id="riskScore" class="text-3xl font-extrabold mt-1 tracking-tight">0</h2>
+          <p class="text-xs text-texts mt-3">Calculated security score</p>
+        </div>
+
+        <div class="reveal lift bg-white rounded-2xl shadow-soft border border-bordc p-6 border-l-4 border-l-success">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"><i data-lucide="file-check-2" class="w-5 h-5 text-success"></i></div>
+          <p class="text-texts mt-4 text-sm font-medium">Document</p>
+          <h2 id="documentName" class="text-lg font-bold mt-1 break-words">-</h2>
+          <p class="text-xs text-texts mt-3">Uploaded document</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- SENSITIVE INFORMATION -->
+      <!-- ============================================================ -->
+      <section id="results" class="reveal bg-white rounded-3xl shadow-soft border border-bordc mt-10 p-8 lg:p-10">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+          <div>
+            <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+              <i data-lucide="search-check" class="w-6 h-6 text-primary"></i>
+              Sensitive Information
+            </h2>
+            <p class="text-texts mt-2">AI detected confidential information inside your document.</p>
+          </div>
+          <span id="entityCountBadge" class="bg-blue-50 text-primary px-4 py-2 rounded-full font-semibold text-sm border border-blue-100">
+            0 Entities
+          </span>
+        </div>
+
+        <div id="detections" class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div class="col-span-full border border-dashed border-bordc rounded-2xl p-10 bg-slate-50 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-white border border-bordc flex items-center justify-center mx-auto">
+              <i data-lucide="file-text" class="w-6 h-6 text-texts"></i>
+            </div>
+            <h3 class="font-bold mt-4">No Analysis Yet</h3>
+            <p class="text-texts mt-2 text-sm">Upload a document to detect sensitive information.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- AI COMPLIANCE REPORT -->
+      <!-- ============================================================ -->
+      <section class="reveal bg-white rounded-3xl shadow-soft border border-bordc mt-8 p-8 lg:p-10">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+              <i data-lucide="bot" class="w-6 h-6 text-primary"></i>
+              AI Compliance Report
+            </h2>
+            <p class="text-texts mt-2">Generated using Google Gemini AI.</p>
+          </div>
+          <span class="bg-emerald-50 text-success px-4 py-2 rounded-full text-sm font-semibold border border-emerald-100">
+            AI Generated
+          </span>
+        </div>
+
+        <div id="summary" class="max-w-none mt-8">
+          <div class="bg-slate-50 rounded-2xl p-8 border border-bordc">
+            <p class="text-texts">Upload a document to generate an AI-powered compliance report.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- DATA MASKING -->
+      <!-- ============================================================ -->
+      <section class="reveal bg-white rounded-3xl shadow-soft border border-bordc mt-8 p-8 lg:p-10">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2.5">
+              <i data-lucide="eye-off" class="w-6 h-6 text-primary"></i>
+              Data Masking
+            </h2>
+            <p class="text-texts mt-2">Automatically redact sensitive information detected in the uploaded document.</p>
+          </div>
+          <button id="maskButton" class="btn-scale inline-flex items-center gap-2 bg-secondary hover:bg-primaryHover text-white px-6 py-3 rounded-xl font-semibold transition shadow-soft">
+            <i data-lucide="scan-eye" class="w-4 h-4"></i>
+            Mask Sensitive Data
+          </button>
+        </div>
+
+        <!-- Masked Document -->
+        <div id="maskedCard" class="mt-8 hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+              <i data-lucide="file-lock-2" class="w-5 h-5 text-primary"></i>
+              Masked Document
+            </h3>
+            <button id="downloadMasked" class="btn-scale inline-flex items-center gap-2 bg-success hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              Download
+            </button>
+          </div>
+          <pre id="maskedText" class="bg-slate-900 text-slate-100 rounded-2xl p-6 whitespace-pre-wrap overflow-auto max-h-[500px] text-sm font-mono border border-slate-800"></pre>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- ABOUT / CONTACT anchors (content light, per brief nav) -->
+      <!-- ============================================================ -->
+      <section id="about" class="reveal grid md:grid-cols-2 gap-6 mt-8 mb-4 scroll-mt-24">
+        <div class="bg-white rounded-3xl shadow-soft border border-bordc p-8">
+          <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="info" class="w-5 h-5 text-primary"></i>About SecureLens AI</h3>
+          <p class="text-texts mt-3 leading-relaxed text-sm">SecureLens AI helps teams find and manage sensitive information inside everyday documents — combining entity detection, AI-generated compliance reporting, and a retrieval-augmented assistant in a single secure workspace.</p>
+        </div>
+        <div id="contact" class="bg-white rounded-3xl shadow-soft border border-bordc p-8 scroll-mt-24">
+          <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="mail" class="w-5 h-5 text-primary"></i>Contact</h3>
+          <p class="text-texts mt-3 leading-relaxed text-sm">Questions about deployment, compliance mapping, or enterprise use? Reach the team at <span class="text-primary font-medium">contact@securelens.ai</span>.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+    <footer class="border-t border-bordc mt-16 bg-white">
+      
+      <div class="border-t border-bordc py-6 text-center text-xs text-texts">© 2026 SecureLens AI. All rights reserved.</div>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- FLOATING CHATBOT -->
+    <!-- ============================================================ -->
+    <button id="chatToggle" class="btn-scale fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary hover:bg-primaryHover text-white shadow-lift flex items-center justify-center transition">
+      <i data-lucide="message-circle" class="w-6 h-6"></i>
+    </button>
+
+    <div id="chatPanel" class="hidden fixed bottom-24 right-6 z-50 w-[92vw] max-w-sm bg-white rounded-3xl border border-bordc shadow-lift flex flex-col overflow-hidden" style="height: 70vh; max-height: 620px;">
+      <div class="bg-gradient-to-r from-primary to-accent px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i data-lucide="bot" class="w-5 h-5 text-white"></i></span>
+          <div>
+            <p class="text-white font-semibold text-sm leading-tight">SecureLens Assistant</p>
+            <p class="text-blue-100 text-[11px] flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span> RAG ready</p>
+          </div>
+        </div>
+        <button id="chatClose" class="w-8 h-8 rounded-lg hover:bg-white/15 flex items-center justify-center transition">
+          <i data-lucide="x" class="w-4 h-4 text-white"></i>
+        </button>
+      </div>
+
+      <!-- Chat Messages -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50">
+        <div class="flex items-start gap-2.5">
+          <span class="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0"><i data-lucide="bot" class="w-3.5 h-3.5 text-white"></i></span>
+          <div class="bg-white rounded-2xl rounded-tl-sm p-4 shadow-sm max-w-[85%] text-sm border border-bordc">
+            👋 Hello! Upload a document and ask questions like:
+            <ul class="list-disc ml-5 mt-2 space-y-1 text-texts">
+              <li>Summarize this document</li>
+              <li>How many emails are present?</li>
+              <li>What compliance risks exist?</li>
+              <li>List all sensitive information.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="p-4 border-t border-bordc bg-white flex gap-2.5">
+        <input
+          id="chatInput"
+          type="text"
+          placeholder="Ask SecureLens AI anything..."
+          class="flex-1 border border-bordc rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        />
+        <button id="sendBtn" class="btn-scale w-11 h-11 shrink-0 bg-primary hover:bg-primaryHover text-white rounded-xl flex items-center justify-center transition">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // Icons + reveal-on-scroll + chat panel toggle (additive UI only)
+      // ============================================================
+      lucide.createIcons();
+
+      const revealEls = document.querySelectorAll(".reveal");
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("in");
+              io.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+      revealEls.forEach((el) => io.observe(el));
+
+      const chatToggle = document.getElementById("chatToggle");
+      const chatClose = document.getElementById("chatClose");
+      const chatPanel = document.getElementById("chatPanel");
+      const footerChatLink = document.getElementById("footerChatLink");
+
+      function openChat() {
+        chatPanel.classList.remove("hidden");
+        document.getElementById("chatInput").focus();
+      }
+      function closeChat() {
+        chatPanel.classList.add("hidden");
+      }
+
+      chatToggle.addEventListener("click", () => {
+        chatPanel.classList.contains("hidden") ? openChat() : closeChat();
+      });
+      chatClose.addEventListener("click", closeChat);
+      footerChatLink.addEventListener("click", (e) => {
+        e.preventDefault();
+        openChat();
+      });
+    </script>
+
+    <script>
+      // ============================================================
+      // ORIGINAL APPLICATION LOGIC — unchanged IDs, unchanged routes,
+      // unchanged behavior. Only presentation around it was redesigned.
+      // ============================================================
+
+      const input = document.getElementById("document");
+      const filename = document.getElementById("filename");
+      const form = document.getElementById("uploadForm");
+
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const loading = document.getElementById("loading");
+
+      input.addEventListener("change", () => {
+        if (input.files.length > 0) {
+          filename.innerText = input.files[0].name;
+          document.getElementById("documentName").innerText = input.files[0].name;
+        }
+      });
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        if (input.files.length === 0) {
+          alert("Please choose a document.");
+          return;
+        }
+
+        analyzeBtn.disabled = true;
+        analyzeBtn.innerText = "Analyzing...";
+        loading.classList.remove("hidden");
+
+        const formData = new FormData(form);
+
+        try {
+          const response = await fetch("/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+          updateDashboard(result);
+        } catch (error) {
+          alert("Something went wrong.");
+          console.error(error);
+        } finally {
+          loading.classList.add("hidden");
+          analyzeBtn.disabled = false;
+          analyzeBtn.innerText = "Analyze Document";
+          lucide.createIcons();
+        }
+      });
+
+      function updateDashboard(result) {
+        //---------------------------------
+        // Statistics
+        //---------------------------------
+
+        document.getElementById("riskScore").innerText = result.risk.risk_score;
+        document.getElementById("riskLevel").innerText = result.risk.risk_level;
+
+        const riskCard = document.getElementById("riskLevel");
+
+        riskCard.classList.remove("text-green-600", "text-yellow-500", "text-red-600");
+
+        if (result.risk.risk_level === "Low") {
+          riskCard.classList.add("text-green-600");
+        } else if (result.risk.risk_level === "Medium") {
+          riskCard.classList.add("text-yellow-500");
+        } else {
+          riskCard.classList.add("text-red-600");
+        }
+
+        //---------------------------------
+        // Sensitive Information
+        //---------------------------------
+
+        let html = "";
+        let total = 0;
+
+        const detections = result.detections;
+
+        const icons = {
+          email: "📧",
+          phone: "📱",
+          pan: "🪪",
+          aadhaar: "🆔",
+          credit_card: "💳",
+          person: "👤",
+          organization: "🏢",
+          date: "📅",
+          bank_account: "🏦",
+          ifsc: "🏛",
+          password: "🔑",
+          aws_access_key: "☁️",
+          github_token: "🐙",
+          google_api_key: "🔐",
+          jwt_token: "🎟",
+          employee_id: "🪪",
+          confidential_information: "📁",
+          location: "📍",
+          password_context: "🔑",
+          api_key_context: "🔐",
+        };
+
+        for (const key in detections) {
+          if (detections[key].length > 0) {
+            total += detections[key].length;
+
+            html += `
+            <div class="border border-bordc rounded-2xl p-5 bg-slate-50 lift">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold capitalize flex items-center gap-2">
+                        <span>${icons[key] || "📄"}</span> ${key.replace("_", " ")}
+                    </h3>
+                    <span class="bg-blue-100 text-primary text-xs px-3 py-1 rounded-full font-semibold">
+                        ${detections[key].length} Found
+                    </span>
+                </div>
+                <ul class="mt-4 space-y-2">
+                    ${detections[key]
+                      .map(
+                        (item) => `
+                        <li class="bg-white rounded-lg p-3 border border-bordc text-sm break-all">
+                            ${item}
+                        </li>
+                    `
+                      )
+                      .join("")}
+                </ul>
+            </div>
+            `;
+          }
+        }
+
+        if (html === "") {
+          html = `
+        <div class="col-span-full bg-emerald-50 border border-emerald-100 rounded-2xl p-10 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-white border border-emerald-100 flex items-center justify-center mx-auto">
+                <i data-lucide="check-circle-2" class="w-6 h-6 text-success"></i>
+            </div>
+            <h2 class="text-xl font-bold mt-4">
+                No Sensitive Information Found
+            </h2>
+            <p class="text-texts mt-2 text-sm">
+                The uploaded document appears safe.
+            </p>
+        </div>
+        `;
+        }
+
+        document.getElementById("detections").innerHTML = html;
+
+        document.getElementById("sensitiveCount").innerText = total;
+        document.getElementById("entityCountBadge").innerText = total + " Entities";
+
+        //---------------------------------
+        // AI Summary
+        //---------------------------------
+
+        document.getElementById("summary").innerHTML = marked.parse(result.summary);
+
+        lucide.createIcons();
+      }
+
+      //========================================
+      // Chat (Flask /chat endpoint)
+      //========================================
+
+      const sendBtn = document.getElementById("sendBtn");
+
+      function sendChatMessage() {
+        const chatInput = document.getElementById("chatInput");
+        const messages = document.getElementById("chatMessages");
+
+        if (chatInput.value.trim() === "") return;
+
+        const question = chatInput.value;
+        const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        messages.innerHTML += `
+        <div class="flex items-end justify-end gap-2.5">
+            <div>
+                <div class="bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%] text-sm shadow-sm ml-auto">
+                    ${question}
+                </div>
+                <p class="text-[10px] text-texts text-right mt-1 mr-1">${time}</p>
+            </div>
+            <span class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0 text-white text-xs font-bold">U</span>
+        </div>
+    `;
+
+        chatInput.value = "";
+
+        messages.innerHTML += `
+        <div id="thinking" class="flex items-start gap-2.5">
+            <span class="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0"><i data-lucide="bot" class="w-3.5 h-3.5 text-white"></i></span>
+            <div class="bg-white rounded-2xl rounded-tl-sm px-4 py-3.5 shadow-sm border border-bordc flex items-center gap-1.5">
+                <span class="dot w-1.5 h-1.5 rounded-full bg-texts inline-block"></span>
+                <span class="dot w-1.5 h-1.5 rounded-full bg-texts inline-block"></span>
+                <span class="dot w-1.5 h-1.5 rounded-full bg-texts inline-block"></span>
+            </div>
+        </div>
+    `;
+
+        lucide.createIcons();
+        messages.scrollTop = messages.scrollHeight;
+
+        fetch("/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question: question,
+          }),
+        })
+          .then((response) => response.json())
+          .then((result) => {
+            document.getElementById("thinking").remove();
+
+            const replyTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+            messages.innerHTML += `
+            <div class="flex items-start gap-2.5">
+                <span class="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0"><i data-lucide="bot" class="w-3.5 h-3.5 text-white"></i></span>
+                <div>
+                    <div class="bg-white border border-bordc rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%] shadow-sm text-sm">
+                        ${marked.parse(result.answer)}
+                    </div>
+                    <p class="text-[10px] text-texts mt-1 ml-1">${replyTime}</p>
+                </div>
+            </div>
+        `;
+
+            lucide.createIcons();
+            messages.scrollTop = messages.scrollHeight;
+          });
+      }
+
+      sendBtn.addEventListener("click", sendChatMessage);
+
+      document.getElementById("chatInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendChatMessage();
+        }
+      });
+
+      // --------------------------------------------------
+      // Mask Document
+      // --------------------------------------------------
+
+      const maskButton = document.getElementById("maskButton");
+      const maskedCard = document.getElementById("maskedCard");
+      const maskedText = document.getElementById("maskedText");
+
+      maskButton.addEventListener("click", async () => {
+        const response = await fetch("/mask", {
+          method: "POST",
+        });
+
+        const result = await response.json();
+
+        maskedCard.classList.remove("hidden");
+        maskedText.textContent = result.masked_text;
+      });
+
+      // --------------------------------------------------
+      // Download Masked Document
+      // --------------------------------------------------
+
+      document.getElementById("downloadMasked").addEventListener("click", () => {
+        const blob = new Blob([maskedText.textContent], { type: "text/plain" });
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "masked_document.txt";
+        a.click();
+
+        URL.revokeObjectURL(url);
+      });
+    </script>
+  </body>
+</html>
